@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 iam_client = boto3.client('iam')
 
 
-# Create Dev role
+# Function to create iam roles
 def create_iam_role(role_name, assume_role_policy_document):
     try:
         role = iam_client.create_role(
@@ -31,6 +31,7 @@ def create_iam_role(role_name, assume_role_policy_document):
             return None
 
 
+# Create Dev role
 dev_role_policy = {
     "Version": "2012-10-17",
     "Statement": [
@@ -77,6 +78,7 @@ user_policy_document = {
     ]
 }
 
+# Attach the custom policy to `User` role
 iam_client.put_role_policy(
     RoleName="User",
     PolicyName="S3ListGetAccess",
@@ -84,10 +86,11 @@ iam_client.put_role_policy(
 )
 
 # Step3: Create IAM User
-# Create a new IAM user
+# Initialize the IAM client
 iam_client = boto3.client('iam')
 
 
+# Function to create iam users
 def create_iam_user(user):
     try:
         iam_user_obj = iam_client.create_user(UserName=user)
@@ -125,7 +128,7 @@ assume_role_policy = {
     ]
 }
 
-# Attach the custom policy to `TestUser`
+# Attach the custom policy to `TestUser` user
 iam_client.put_user_policy(
     UserName=user_name,
     PolicyName="AssumeDevUserRoles",

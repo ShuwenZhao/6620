@@ -1,3 +1,4 @@
+import os
 import boto3
 import time
 import requests
@@ -6,11 +7,12 @@ import requests
 # PART 4: DRIVER LAMBDA
 ####################
 
+# Retrieve bucket and table names from environment variables
+bucket_name = os.environ['BUCKET_NAME']
+table_name = os.environ['TABLE_NAME']
+
 # Initialize S3 and API Gateway clients
 s3 = boto3.client('s3')
-
-# Define the S3 bucket name
-bucket_name = 'test-bucket-swzhao-2024'
 
 # Define the API Gateway endpoint for the plotting Lambda
 PLOTTING_LAMBDA_API_URL = 'https://1uuh0nppu4.execute-api.us-east-1.amazonaws.com/prod/plot'

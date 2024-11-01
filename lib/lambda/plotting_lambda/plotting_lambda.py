@@ -1,3 +1,4 @@
+import os
 import boto3
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
@@ -6,10 +7,14 @@ from datetime import datetime, timedelta
 # PART 3: PLOTTING LAMBDA
 ####################
 
+# Retrieve bucket and table names from environment variables
+bucket_name = os.environ['BUCKET_NAME']
+table_name = os.environ['TABLE_NAME']
+
 # Initialize S3 and DynamoDB clients
 dynamodb = boto3.resource('dynamodb')
 s3 = boto3.client('s3')
-table = dynamodb.Table('S3-object-size-history')
+table = dynamodb.Table(table_name)
 
 
 def query_data(bucket_name, time_range):
@@ -67,12 +72,10 @@ def generate_basic_plot(data):
 
     # Upload the plot to S3
     with open('/tmp/plot.png', 'rb') as plot_file:
-        s3.upload_fileobj(plot_file, 'test-bucket-swzhao-2024', 'plot.png')
+        s3.upload_fileobj(plot_file, os.environ['BUCKET_NAME'], 'plot.png')
 
 
 def lambda_handler(event, context):
-    bucket_name = 'test-bucket-swzhao-2024'
-
     # Query DynamoDB for the last 10 seconds of data
     data = query_data(bucket_name, 10)
 

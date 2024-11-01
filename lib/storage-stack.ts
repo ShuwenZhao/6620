@@ -29,5 +29,9 @@ export class StorageStack extends Stack {
       partitionKey: { name: 'bucket_name', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'total_size', type: dynamodb.AttributeType.NUMBER },
     });
+
+    // Outputs
+    new cdk.CfnOutput(this, 'BucketName', { value: this.bucket.bucketName });
+    new cdk.CfnOutput(this, 'TableName', { value: this.table.tableName });
   }
 }

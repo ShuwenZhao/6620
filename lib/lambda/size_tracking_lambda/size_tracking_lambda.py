@@ -1,3 +1,4 @@
+import os
 import boto3
 from datetime import datetime
 
@@ -5,10 +6,14 @@ from datetime import datetime
 # PART 2: SIZE TRACKING LAMBDA
 ####################
 
+# Retrieve bucket and table names from environment variables
+bucket_name = os.environ['BUCKET_NAME']
+table_name = os.environ['TABLE_NAME']
+
 # Initialize S3 and DynamoDB clients
 s3 = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('S3-object-size-history')
+table = dynamodb.Table(table_name)
 
 
 def get_total_size(bucket_name):

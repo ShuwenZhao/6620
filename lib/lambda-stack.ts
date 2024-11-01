@@ -37,8 +37,10 @@ export class LambdaStack extends Stack {
       handler: 'plotting_lambda.lambda_handler',
       code: lambda.Code.fromAsset('lib/lambda/plotting_lambda'),
       environment: {
-        TABLE_NAME: table.tableName,
+        BUCKET_NAME: props.bucket.bucketName,
+        TABLE_NAME: props.table.tableName,
       },
+      timeout: cdk.Duration.seconds(80),
     });
 
     // Driver Lambda
@@ -47,18 +49,20 @@ export class LambdaStack extends Stack {
       handler: 'driver_lambda.lambda_handler',
       code: lambda.Code.fromAsset('lib/lambda/driver_lambda'),
       environment: {
-        BUCKET_NAME: bucket.bucketName,
+        BUCKET_NAME: props.bucket.bucketName,
+        TABLE_NAME: props.table.tableName,
         PLOTTING_LAMBDA_API_URL: 'https://1uuh0nppu4.execute-api.us-east-1.amazonaws.com/prod/plot',
       },
+      timeout: cdk.Duration.seconds(80),
     });
 
-    // Grant permissions
-    this.driverLambda.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject', 's3:ListBucket'],
-      resources: ['arn:aws:s3:::test-bucket-swzhao-2024', 'arn:aws:s3:::test-bucket-swzhao-2024/*'],
-    }));
-    bucket.grantReadWrite(this.sizeTrackingLambda);
-    table.grantReadWriteData(this.sizeTrackingLambda);
-    table.grantReadData(this.plottingLambda);
+   // Grant necessary permissions
+   props.bucket.grantRead(this.sizeTrackingLambda);
+   props.bucket.grantPut(this.sizeTrackingLambda);
+   props.table.grantWriteData(this.sizeTrackingLambda); 
+   props.bucket.grantPut(this.driverLambda);
+   props.bucket.grantDelete(this.driverLambda);
+   props.table.grantReadData(this.plottingLambda);
+   props.bucket.grantPut(this.plottingLambda);
   }
 }

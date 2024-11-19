@@ -1,3 +1,4 @@
+import json
 import os
 import boto3
 from datetime import datetime
@@ -33,46 +34,47 @@ def get_total_size(bucket_name):
     return total_size, total_objects
 
 
-# This lambda function receives an event when an S3 object is created, updated, or deleted.
-# Computes the total size of the objects in the bucket.
-# Writes the bucket name, total size, number of objects, and timestamp into the DynamoDB table.
+# This lambda handler is for processing messages from the SQS queue. 
+# Each message contains an S3 event.
 def lambda_handler(event, context):
     print(f"Received event: {event}")
 
-    # Get the bucket name from the event
     try:
-        bucket_name = event['Records'][0]['s3']['bucket']['name']
-        print(f"Processing S3 bucket: {bucket_name}")
-    except Exception as e:
-        print(f"Error extracting bucket name from event: {e}")
-        raise e
+        # Iterate through SQS messages
+        for record in event['Records']:
+            # Extract the SNS message from the SQS record
+            sns_message = json.loads(record['body'])
+            
+            # Extract the original S3 event from the SNS message
+            s3_event = json.loads(sns_message['Message'])['Records'][0]
 
-    # Get the total size and object count in the bucket
-    try:
-        total_size, total_objects = get_total_size(bucket_name)
-    except Exception as e:
-        print(f"Error getting total size of bucket {bucket_name}: {e}")
-        raise e
+            # Extract bucket name and object key from the S3 event
+            bucket_name = s3_event['s3']['bucket']['name']
+            object_key = s3_event['s3']['object']['key']
+            object_size = s3_event['s3']['object'].get('size', 0)  # Default size to 0 if not present
 
-    timestamp = datetime.now().isoformat()
-    print(f"Timestamp: {timestamp}")
+            print(f"Processing S3 bucket: {bucket_name}, Object: {object_key}, Size: {object_size}")
 
-    # Store size info in DynamoDB
-    try:
-        table.put_item(
-            Item={
-                'bucket_name': bucket_name,
-                'timestamp': timestamp,
-                'total_size': total_size,
-                'total_objects': total_objects
-            }
-        )
-        print(f"Successfully stored size info in DynamoDB for bucket: {bucket_name}")
+            # Compute total size and object count
+            total_size, total_objects = get_total_size(bucket_name)
+
+            # Store size info in DynamoDB
+            timestamp = datetime.now().isoformat()
+            table.put_item(
+                Item={
+                    'bucket_name': bucket_name,
+                    'timestamp': timestamp,
+                    'total_size': total_size,
+                    'total_objects': total_objects
+                }
+            )
+            print(f"Successfully stored size info in DynamoDB for bucket: {bucket_name}")
+
     except Exception as e:
-        print(f"Error writing to DynamoDB: {e}")
+        print(f"Error processing event: {e}")
         raise e
 
     return {
         'statusCode': 200,
-        'body': f"Bucket size recorded: {total_size} bytes, {total_objects} objects."
+        'body': "Event processed successfully."
     }

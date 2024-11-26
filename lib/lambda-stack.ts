@@ -8,6 +8,7 @@ import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as cloudwatchActions from 'aws-cdk-lib/aws-cloudwatch-actions';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 interface LambdaStackProps extends StackProps {
   bucket: s3.Bucket;
@@ -99,6 +100,18 @@ export class LambdaStack extends Stack {
     );
     // Grant necessary permissions to the logging lambda
     props.bucket.grantRead(this.loggingLambda);
+    // Grant Logging Lambda access to CloudWatch logs to use `filter_log_events`
+    this.loggingLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          'logs:FilterLogEvents',
+          'logs:GetLogEvents',
+          'logs:DescribeLogStreams', 
+        ],
+        resources: [`arn:aws:logs:us-east-1:891377242643:log-group:/aws/lambda/LambdaStack-LoggingLambda9F8E42F8-IAEsKj9DQeXw:*
+`],
+      })
+    );
 
     // Cleaner Lambda
     this.cleanerLambda = new lambda.Function(this, 'CleanerLambda', {
@@ -107,11 +120,26 @@ export class LambdaStack extends Stack {
       code: lambda.Code.fromAsset('lib/lambda/cleaner_lambda'),
       environment: {
         BUCKET_NAME: props.bucket.bucketName,
+        LOGGING_LAMBDA_NAME: this.loggingLambda.functionName,
+        LOG_GROUP_NAME: `/aws/lambda/${this.loggingLambda.functionName}`,
       },
     });
     // Grant necessary permissions to the Cleaner Lambda
-    props.bucket.grantRead(this.cleanerLambda); 
+    props.bucket.grantRead(this.cleanerLambda);
     props.bucket.grantDelete(this.cleanerLambda);
+    // Grant Cleaner Lambda access to CloudWatch logs to use `filter_log_events`
+    this.cleanerLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          'logs:FilterLogEvents',
+          'logs:GetLogEvents',
+          'logs:DescribeLogStreams',
+        ],
+        resources: [`arn:aws:logs:us-east-1:891377242643:log-group:/aws/lambda/LambdaStack-LoggingLambda9F8E42F8-IAEsKj9DQeXw:*
+`],
+      })
+    );
+
 
     // Create Metric Filter for Logging Lambda
     const logGroup = logs.LogGroup.fromLogGroupName(
